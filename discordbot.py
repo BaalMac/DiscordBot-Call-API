@@ -177,7 +177,7 @@ async def delClip(interaction: discord.Interaction, id: str):
         await interaction.followup.send(f"ITS BORKED! Error: {e}")
 
 @client.tree.command(name="swapclip", description="Replaces a clipID from the database with a twitch clip", guild=GUILD_ID)
-async def replaceClip(interaction: discord.Interaction, id: str, link: str):
+async def swapclip(interaction: discord.Interaction, id: str, link: str):
     await interaction.response.defer()
     headers = {
         "X-API-Key": Config.DISCORDBOT_API_KEY  
@@ -215,8 +215,45 @@ async def replaceClip(interaction: discord.Interaction, id: str, link: str):
         traceback.print_exc()
         await interaction.followup.send(f"ITS BORKED! Error: {e}")
 
+@client.tree.command(name="updatevod", description="Backfills missing VOD data for all clips", guild=GUILD_ID)
+async def updateVod(interaction: discord.Interaction):
+    await interaction.response.defer()
+
+    headers = {
+        "X-API-Key": Config.DISCORDBOT_API_KEY
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f'{Config.API_URL}/clips/vod/update',
+                headers=headers
+            ) as response:
+                data = await response.json()
+
+                if not data.get("success"):
+                    embed = discord.Embed(
+                        title="❌ VOD Update Failed",
+                        description=f"Error: {data.get('error', 'Unknown error')}",
+                        color=discord.Color.red()
+                    )
+                else:
+                    embed = discord.Embed(
+                        title="✅ VOD Data Updated!",
+                        description=data.get("message", "All VOD data has been backfilled."),
+                        color=discord.Color.teal()
+                    )
+                    embed.set_footer(text=f"Requested by {interaction.user.display_name}")
+
+                await interaction.followup.send(embed=embed)
+
+    except Exception as e:
+        print(f"ITS BORKED! Error: {e}")
+        traceback.print_exc()
+        await interaction.followup.send(f"ITS BORKED! Error: {e}")
+
 @client.tree.command(name="timesince", description="Time since Last clip", guild=GUILD_ID)
-async def replaceClip(interaction: discord.Interaction):
+async def timesince(interaction: discord.Interaction):
     await interaction.response.defer()
     try:
         async with aiohttp.ClientSession() as session:
